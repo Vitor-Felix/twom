@@ -2,29 +2,29 @@ package twom;
 import java.net.*;
 import java.util.concurrent.*;
 import java.io.*;
-import java.io.DataInputStream;
 
-public class MainServer
+public class MainServer implements Runnable
 {
-	public static void main(String[] args) throws IOException
-	{
-		ExecutorService exec = Executors.newCachedThreadPool();
-		ServerSocket s = new ServerSocket(4444);
-		
-		DataInputStream inGame, inChat;
-		DataOutputStream outGame, outChat;
+	static ServerSocket server;
+	DataInputStream inGame, inChat;
+	DataOutputStream outGame, outChat;
+	String nome;
+	static Socket game, chat;
 
-		String nome;
-		Socket game = s.accept();
-		Socket chat = s.accept();
+	private MainServer(Socket ns, Socket ns2) {
+		game = ns;
+		chat = ns2;
+	} 
 
-		//INSTANCIANDO O ABRIGO
-		//			listaArenas arenas = new listaArenas();
-
-		inGame = new DataInputStream(game.getInputStream());
-		outGame = new DataOutputStream(game.getOutputStream());
-		inChat = new DataInputStream(chat.getInputStream());
-		outChat = new DataOutputStream(chat.getOutputStream());
+	public void run(){
+		try {
+			inGame = new DataInputStream(game.getInputStream());
+			outGame = new DataOutputStream(game.getOutputStream());
+			inChat = new DataInputStream(chat.getInputStream());
+			outChat = new DataOutputStream(chat.getOutputStream());
+		}catch(IOException ex){
+			
+		}
 
 		while(true)
 		{
@@ -32,16 +32,49 @@ public class MainServer
 			//			arenas.criarListaArenas();
 			//			(new Thread(new verificaLista(arenas))).start();
 
-			nome = inGame.readUTF();	
-			/*VARIAVEL PARA O ABRIGO*/arena = /*arenas.criarArena() ABRIGO*/;			
-			outGame.writeUTF(nome);
-			exec.execute(new ServerClone(game));
-			inGame.close();
-			outGame.close();
-			game.close();
-			inChat.close();
-			outChat.close();
-			chat.close();
+			try {
+				nome = inGame.readUTF();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}	
+			//			/*VARIAVEL PARA O ABRIGO*/arena = /*arenas.criarArena() ABRIGO*/;			
+			try {
+				outGame.writeUTF(nome);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			try {
+				inGame.close();
+				outGame.close();
+				game.close();
+
+				inChat.close();
+				outChat.close();
+				chat.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}	
 		}		
+	}
+	
+	public static void main(String[] args) throws IOException
+	{
+		ExecutorService exec = Executors.newCachedThreadPool();
+		server = new ServerSocket(4444);
+
+		while(true)
+		{		
+			Socket game = server.accept();
+			Socket chat = server.accept();
+			exec.execute(new MainServer(game, chat));
+			if(server.isClosed()) break;
+		}		
+		System.out.println("Closing Server");
+		server.close();
+		System.exit(0);
 	}
 }
